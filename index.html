@@ -1,1 +1,304 @@
-<h1>Hello</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Exam Score Analyzer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#fff;background:radial-gradient(circle at 10% 10%,rgba(99,102,241,.25),transparent 30%),radial-gradient(circle at 90% 90%,rgba(14,165,233,.18),transparent 30%),#070a13;padding:40px 18px}
+.container{max-width:1100px;margin:auto}
+.header{text-align:center;margin-bottom:32px}
+.badge{display:inline-block;padding:7px 14px;border-radius:999px;background:rgba(99,102,241,.12);border:1px solid rgba(129,140,248,.3);color:#a5b4fc;font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:16px}
+h1{font-size:clamp(34px,5vw,54px);line-height:1.08;margin-bottom:14px;background:linear-gradient(90deg,#fff,#a5b4fc,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{max-width:720px;margin:auto;color:#94a3b8;line-height:1.7;font-size:15px}
+.card,.score-card{background:rgba(15,23,42,.78);border:1px solid rgba(148,163,184,.14);border-radius:22px;box-shadow:0 25px 70px rgba(0,0,0,.35);backdrop-filter:blur(15px)}
+.card{padding:26px}
+label{display:block;margin-bottom:9px;color:#cbd5e1;font-size:14px;font-weight:650}
+.input-row{display:flex;gap:12px}
+input{flex:1;height:54px;padding:0 17px;border-radius:14px;border:1px solid #334155;background:rgba(2,6,23,.75);color:#fff;font-size:14px;outline:0}
+input:focus{border-color:#818cf8;box-shadow:0 0 0 4px rgba(99,102,241,.12)}
+button{height:54px;padding:0 28px;border:0;border-radius:14px;cursor:pointer;color:#fff;font-weight:750;background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 10px 25px rgba(79,70,229,.3)}
+button:hover{transform:translateY(-1px)}
+button:disabled{opacity:.65;cursor:not-allowed;transform:none}
+.status{display:none;margin-top:16px;padding:13px 15px;border-radius:12px;font-size:14px;line-height:1.5}
+.status.show{display:block}.status.loading{display:flex;align-items:center;gap:10px;color:#93c5fd;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2)}
+.status.success{color:#86efac;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2)}
+.status.error{color:#fca5a5;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2)}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#818cf8;border-radius:50%;animation:spin .8s linear infinite;flex:0 0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.results{display:none;margin-top:30px}.results.visible{display:block;animation:up .45s ease}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.section-title{font-size:22px;margin-bottom:16px}
+.score-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.score-card{padding:23px}
+.total-card{grid-column:span 2;background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(14,165,233,.1))}
+.section-header{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:19px}
+.section-name{font-size:18px;font-weight:750}.section-score{font-size:30px;font-weight:850;color:#a5b4fc}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.stat{padding:13px 8px;border-radius:12px;background:rgba(2,6,23,.45);text-align:center}
+.value{display:block;font-size:20px;font-weight:850;margin-bottom:4px}.label{display:block;color:#94a3b8;font-size:10px}
+.blue{color:#60a5fa}.yellow{color:#fbbf24}.green{color:#4ade80}.red{color:#fb7185}
+.note{text-align:center;color:#64748b;font-size:12px;margin-top:24px}
+@media(max-width:700px){body{padding:25px 13px}.card{padding:19px}.input-row{flex-direction:column}button{width:100%}.score-grid{grid-template-columns:1fr}.total-card{grid-column:span 1}.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="header">
+    <div class="badge">GSSSB • DIGIALM SCORE ANALYZER</div>
+    <h1>Analyze Your Exam Score</h1>
+    <p class="subtitle">Paste your Digialm/TCS iON result URL. The app fetches the HTML through a server-side proxy, reads Part A and Part B, and calculates the score with −0.25 negative marking.</p>
+  </header>
+
+  <section class="card">
+    <label for="examUrl">Exam Result URL</label>
+    <div class="input-row">
+      <input id="examUrl" type="url" autocomplete="off"
+        placeholder="https://cdn3.digialm.com/per/.../AssessmentQPHTMLMode1/...html">
+      <button id="fetchBtn">Fetch Result</button>
+    </div>
+    <div id="status" class="status"></div>
+  </section>
+
+  <section id="results" class="results">
+    <h2 class="section-title">Score Summary</h2>
+    <div class="score-grid">
+      <div class="score-card">
+        <div class="section-header"><div class="section-name" id="partAName">Part A</div><div class="section-score" id="partAScore">0</div></div>
+        <div class="stats">
+          <div class="stat"><span id="partAAttempted" class="value blue">0</span><span class="label">Attempted</span></div>
+          <div class="stat"><span id="partANotAttempted" class="value yellow">0</span><span class="label">Not Attempted</span></div>
+          <div class="stat"><span id="partACorrect" class="value green">0</span><span class="label">Right</span></div>
+          <div class="stat"><span id="partAWrong" class="value red">0</span><span class="label">Wrong</span></div>
+        </div>
+      </div>
+
+      <div class="score-card">
+        <div class="section-header"><div class="section-name" id="partBName">Part B</div><div class="section-score" id="partBScore">0</div></div>
+        <div class="stats">
+          <div class="stat"><span id="partBAttempted" class="value blue">0</span><span class="label">Attempted</span></div>
+          <div class="stat"><span id="partBNotAttempted" class="value yellow">0</span><span class="label">Not Attempted</span></div>
+          <div class="stat"><span id="partBCorrect" class="value green">0</span><span class="label">Right</span></div>
+          <div class="stat"><span id="partBWrong" class="value red">0</span><span class="label">Wrong</span></div>
+        </div>
+      </div>
+
+      <div class="score-card total-card">
+        <div class="section-header"><div class="section-name">Total Score</div><div class="section-score" id="totalScore">0</div></div>
+        <div class="stats">
+          <div class="stat"><span id="totalAttempted" class="value blue">0</span><span class="label">Attempted</span></div>
+          <div class="stat"><span id="totalNotAttempted" class="value yellow">0</span><span class="label">Not Attempted</span></div>
+          <div class="stat"><span id="totalCorrect" class="value green">0</span><span class="label">Right</span></div>
+          <div class="stat"><span id="totalWrong" class="value red">0</span><span class="label">Wrong</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="note">Scoring: +1 for a correct answer, −0.25 for a wrong attempted answer, 0 for not attempted.</div>
+</div>
+
+<script>
+/*
+ * CHANGE THIS AFTER DEPLOYING THE CLOUDFLARE WORKER.
+ * Example:
+ * const PROXY_URL = "https://exam-score-proxy.yourname.workers.dev";
+ */
+const PROXY_URL = "https://exam-score-proxy.kishan-radicalloop.workers.dev";
+
+const $ = id => document.getElementById(id);
+const input = $("examUrl");
+const button = $("fetchBtn");
+const statusBox = $("status");
+const results = $("results");
+
+button.addEventListener("click", fetchExamPage);
+input.addEventListener("keydown", e => { if (e.key === "Enter") fetchExamPage(); });
+
+function setStatus(type, message) {
+  statusBox.className = "status show " + type;
+  statusBox.innerHTML = type === "loading"
+    ? '<span class="spinner"></span><span>' + escapeHtml(message) + '</span>'
+    : escapeHtml(message);
+}
+
+function setLoading(on) {
+  button.disabled = on;
+  button.innerHTML = on ? '<span style="display:inline-flex;align-items:center;gap:8px"><span class="spinner"></span>Fetching...</span>' : "Fetch Result";
+}
+
+async function fetchExamPage() {
+  const url = input.value.trim();
+
+  if (!url) return setStatus("error", "Please enter an exam result URL.");
+
+  try { new URL(url); }
+  catch { return setStatus("error", "Please enter a valid URL."); }
+
+  if (PROXY_URL.includes("YOUR-PROXY-URL")) {
+    return setStatus("error", "Configure PROXY_URL in index.html after deploying the Worker.");
+  }
+
+  setLoading(true);
+  results.classList.remove("visible");
+  setStatus("loading", "Fetching exam HTML and calculating your score...");
+
+  try {
+    const endpoint = PROXY_URL + "?url=" + encodeURIComponent(url);
+    const response = await fetch(endpoint, { headers: { Accept: "application/json" } });
+
+    if (!response.ok) throw new Error("Proxy returned HTTP " + response.status);
+
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error || "The proxy could not fetch the exam page.");
+
+    const source = data.source;
+
+    console.log("========== EXAM PAGE SOURCE ==========");
+    console.log(source);
+    console.log("========== SOURCE LENGTH:", source.length, "==========");
+
+    const doc = new DOMParser().parseFromString(source, "text/html");
+    const scoreData = parseDigialmResult(doc);
+
+    console.log("Parsed score data:", scoreData);
+
+    render(scoreData);
+    results.classList.add("visible");
+
+    setStatus("success", "Exam page fetched successfully. The complete HTML source and parsed result are available in the browser console.");
+  } catch (error) {
+    console.error(error);
+    setStatus("error", error.message || "Unable to fetch the exam page.");
+  } finally {
+    setLoading(false);
+  }
+}
+
+/*
+ * Parser for the Digialm HTML structure in the uploaded exam.html.
+ *
+ * The page uses:
+ *   .section-cntnr
+ *   .section-lbl
+ *   .question-pnl
+ *   .menu-tbl -> Status / Chosen Option
+ *   td.rightAns -> correct option
+ *   td.wrngAns -> incorrect options
+ */
+function parseDigialmResult(doc) {
+  const sections = [...doc.querySelectorAll(".section-cntnr")];
+
+  const parsed = sections.map(section => {
+    const label = section.querySelector(".section-lbl")?.textContent.trim() || "";
+    const questions = [...section.querySelectorAll(":scope > .question-pnl")];
+
+    let attempted = 0;
+    let notAttempted = 0;
+    let correct = 0;
+    let wrong = 0;
+
+    for (const question of questions) {
+      const menu = question.querySelector(".menu-tbl");
+      if (!menu) continue;
+
+      const menuText = menu.textContent.replace(/\s+/g, " ").trim();
+
+      const statusMatch = menuText.match(/Status\s*:\s*(Answered|Not Answered)/i);
+      const chosenMatch = menuText.match(/Chosen Option\s*:\s*(\d+|--)/i);
+
+      const status = statusMatch ? statusMatch[1] : "";
+      const chosen = chosenMatch ? chosenMatch[1] : "--";
+
+      const correctCell = question.querySelector("td.rightAns");
+      const correctMatch = correctCell?.textContent.match(/^\s*(\d+)\./);
+      const correctOption = correctMatch ? correctMatch[1] : null;
+
+      if (status.toLowerCase() === "answered") {
+        attempted++;
+
+        if (chosen !== "--" && correctOption && chosen === correctOption) {
+          correct++;
+        } else {
+          wrong++;
+        }
+      } else {
+        notAttempted++;
+      }
+    }
+
+    return {
+      name: label.replace(/^Section\s*:\s*/i, "").trim(),
+      total: questions.length,
+      attempted,
+      notAttempted,
+      correct,
+      wrong,
+      score: calculateScore(correct, wrong)
+    };
+  }).filter(s => s.total > 0);
+
+  const partA = parsed.find(s => /^Part A\b/i.test(s.name)) || emptySection("Part A");
+  const partB = parsed.find(s => /^Part B\b/i.test(s.name)) || emptySection("Part B");
+
+  const total = {
+    total: partA.total + partB.total,
+    attempted: partA.attempted + partB.attempted,
+    notAttempted: partA.notAttempted + partB.notAttempted,
+    correct: partA.correct + partB.correct,
+    wrong: partA.wrong + partB.wrong
+  };
+  total.score = calculateScore(total.correct, total.wrong);
+
+  return { partA, partB, total };
+}
+
+function emptySection(name) {
+  return { name, total: 0, attempted: 0, notAttempted: 0, correct: 0, wrong: 0, score: 0 };
+}
+
+function calculateScore(correct, wrong) {
+  return correct - (wrong * 0.25);
+}
+
+function formatScore(value) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function render(data) {
+  const { partA, partB, total } = data;
+
+  $("partAName").textContent = partA.name;
+  $("partBName").textContent = partB.name;
+
+  $("partAScore").textContent = formatScore(partA.score);
+  $("partAAttempted").textContent = partA.attempted;
+  $("partANotAttempted").textContent = partA.notAttempted;
+  $("partACorrect").textContent = partA.correct;
+  $("partAWrong").textContent = partA.wrong;
+
+  $("partBScore").textContent = formatScore(partB.score);
+  $("partBAttempted").textContent = partB.attempted;
+  $("partBNotAttempted").textContent = partB.notAttempted;
+  $("partBCorrect").textContent = partB.correct;
+  $("partBWrong").textContent = partB.wrong;
+
+  $("totalScore").textContent = formatScore(total.score);
+  $("totalAttempted").textContent = total.attempted;
+  $("totalNotAttempted").textContent = total.notAttempted;
+  $("totalCorrect").textContent = total.correct;
+  $("totalWrong").textContent = total.wrong;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+</script>
+</body>
+</html>
